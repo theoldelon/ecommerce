@@ -1,6 +1,80 @@
 @extends('layouts.app')
 
 @section('content')
+
+<main class="pt-90">
+    <div class="mb-4 pb-4"></div>
+    <section class="login-register container">
+        <ul class="nav nav-tabs mb-5" id="login_register" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link nav-link_underscore active" id="login-tab" data-bs-toggle="tab" href="#tab-item-login"
+                    role="tab" aria-controls="tab-item-login" aria-selected="true">Login</a>
+            </li>
+        </ul>
+
+        <div class="tab-content pt-2" id="login_register_tab_content">
+            <div class="tab-pane fade show active" id="tab-item-login" role="tabpanel" aria-labelledby="login-tab">
+                <div class="login-form">
+                    <form method="POST" action="{{ route('login') }}" name="login-form" class="needs-validation" novalidate>
+                        @csrf
+
+                        {{-- Email --}}
+                        <div class="form-floating mb-3">
+                            <input id="email" type="email" class="form-control form-control_gray @error('email') is-invalid @enderror"
+                                name="email" value="{{ old('email') }}" required autocomplete="email" autofocus>
+                            <label for="email">Email address *</label>                           
+                        @error('email')
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
+                        @enderror
+                        </div>
+
+                        <div class="pb-3"></div>
+
+                        {{-- Password --}}
+                        <div class="form-floating mb-3">
+                            <input id="password" type="password"
+                                class="form-control form-control_gray @error('password') is-invalid @enderror"
+                                name="password" required autocomplete="current-password">
+                            <label for="password">Password *</label>
+                            @error('password')
+                                <div class="invalid-feedback" role="alert">
+                                    <strong>{{ $message }}</strong>
+                                </div>
+                            @enderror
+                        </div>
+
+                        {{-- Remember Me --}}
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember"
+                                {{ old('remember') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="remember">
+                                Remember Me
+                            </label>
+                        </div>
+
+                        {{-- Submit --}}
+                        <button class="btn btn-primary w-100 text-uppercase" type="submit">Log In</button>
+
+                        {{-- Links --}}
+                        <div class="customer-option mt-4 text-center">
+                            @if (Route::has('password.request'))
+                                <a class="btn-text d-block mb-2" href="{{ route('password.request') }}">
+                                    Forgot Your Password?
+                                </a>
+                            @endif
+                            <span class="text-secondary">No account yet?</span>
+                            <a href="{{ route('register') }}" class="btn-text js-show-register">Create Account</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+  
+{{--
 <div class="container">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -70,4 +144,5 @@
         </div>
     </div>
 </div>
+--}}
 @endsection
