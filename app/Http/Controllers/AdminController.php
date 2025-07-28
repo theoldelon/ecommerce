@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Brand;
+use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
@@ -175,4 +176,59 @@ class AdminController extends Controller
             $constraint->aspectRatio();
         })->save($destinationPath . '/' . $imageName);
     }
+
+    public function edit_category($id)
+{
+    $category = Category::find($id);
+    return view('admin.category-edit',compact('category'));
+}
+
+public function update_category(Request $request)
+{
+    $request->validate([
+        'name' => 'required',
+        'slug' => 'required|unique:categories,slug,' . $request->id,
+        'image' => 'mimes:png,jpg,jpeg|max:2048'
+    ]);
+
+    $category = Category::find($request->id);
+    $category->name = $request->name;
+    $category->slug = $request->slug;
+
+    if ($request->hasFile('image')) {            
+        // Delete old image if it exists
+        if (File::exists(public_path('uploads/categories/' . $category->image))) {
+            File::delete(public_path('uploads/categories/' . $category->image));
+        }
+
+        $image = $request->file('image');
+        $file_extention = $image->extension(); // fixed line
+        $file_name = Carbon::now()->timestamp . '.' . $file_extention;
+
+        $this->generateCategoryThumbnailImage($image, $file_name);   
+        $category->image = $file_name;
+    }
+
+    $category->save();    
+
+    return redirect()->route('admin.categories')->with('status', 'Record has been updated successfully!');
+}
+
+public function delete_category($id)
+    {
+        $category = Category::find($id);
+        if (File::exists(public_path('uploads/categories').'/'.$category->image)) {
+            File::delete(public_path('uploads/categories').'/'.$category->image);
+        }
+        $category->delete();
+        return redirect()->route('admin.categories')->with('status','Record has been deleted successfully !');
+    }
+    
+    public function products()
+    {
+        $products = Product::orderBy('created_at', 'DESC')->paginate(10);
+        return view('admin.products', compact('products'));
+    }
+
+
 }
