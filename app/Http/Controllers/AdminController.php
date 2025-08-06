@@ -230,5 +230,107 @@ public function delete_category($id)
         return view('admin.products', compact('products'));
     }
 
+    public function product_add()
+    {
+        $categories = Category::select('id', 'name')->orderBy('name')->get();
+        $brands = Brand::select('id','name')->orderBy('name')->get();
+        return view('admin.product-add', compact('categories', 'brands'));
+    }
+
+
+    public function product_store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|unique:products,slug|max:255',
+            'short_description' => 'nullable|string',
+            'description' => 'nullable|string',
+            'regular_price' => 'required|numeric',
+            'sale_price' => 'nullable|numeric|lt:regular_price',
+            'SKU' => 'required|string|max:100|unique:products,SKU',
+            'stock_status' => 'required|in:instock,outofstock',
+            'featured' => 'nullable|boolean',
+            'quantity' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images' => 'nullable|array',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
+        ]);
+    
+        $product = new Product();
+        $product->name = $request->name;
+        $product->slug = $request->slug; // Don't override with Str::slug($request->name)
+        $product->short_description = $request->short_description;
+        $product->description = $request->description;
+        $product->regular_price = $request->regular_price;
+        $product->sale_price = $request->sale_price;
+        $product->SKU = $request->SKU;
+        $product->stock_status = $request->stock_status;
+        $product->featured = $request->boolean('featured'); // will default to false if null
+        $product->quantity = $request->quantity;
+        $product->category_id = $request->category_id;
+        $product->brand_id = $request->brand_id;
+    
+        $current_timestamp = Carbon::now()->timestamp;
+    
+        // Handle single image upload
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = $current_timestamp . '.' . $image->extension();
+            $this->GenerateProductThumbnailImage($image, $imageName);
+            $product->image = $imageName;
+        }
+    
+        // Handle gallery images upload
+        $galleryImages = [];
+        if ($request->hasFile('images')) {
+            $files = $request->file('images');
+            foreach ($files as $index => $file) {
+                $ext = $file->getClientOriginalExtension();
+                if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'gif'])) {
+                    $fileName = $current_timestamp . '-' . ($index + 1) . '.' . $ext;
+                    $this->GenerateProductThumbnailImage($file, $fileName);
+                    $galleryImages[] = $fileName;
+                }
+            }
+        }
+    
+        // Store gallery images as comma-separated list (or JSON if preferred)
+        $product->images = implode(',', $galleryImages);
+    
+        $product->save();
+    
+        return redirect()->route('admin.products')->with('success', 'Product Added Successfully');
+    }
+
+    public function GenerateProductThumbnailImage($image, $imageName)
+    {
+        $destinationPath = public_path('uploads/products');
+        $destinationPathThumbnail = $destinationPath . '/thumbnails';
+    
+        // Ensure the main and thumbnail directories exist
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+    
+        if (!file_exists($destinationPathThumbnail)) {
+            mkdir($destinationPathThumbnail, 0755, true);
+        }
+    
+        // Resize and save main image
+        $img = Image::read($image)->resize(300, 300);
+    
+        $img->cover(540, 689, 'top');
+        $img->resize(540, 689, function ($constraint) {
+            $constraint->aspectRatio();
+        })->save($destinationPath . '/' . $imageName);
+    
+        // Resize and save thumbnail image
+        $img->resize(104, 104, function ($constraint) {
+            $constraint->aspectRatio();
+        })->save($destinationPathThumbnail . '/' . $imageName);
+    }
+    
 
 }
