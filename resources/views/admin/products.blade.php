@@ -64,8 +64,11 @@
                             <td>{{ $product->id }}</td>
                             <td class="pname">
                                 <div class="image">
-                                    <img src="{{ asset('uploads/products/thumbnails') }}/{{ $product->image }}" alt="{{ $product->name }}" class="image">
+                                    <img src="{{ asset('uploads/products/'.$product->image) }}" 
+                                         alt="{{ $product->name }}" 
+                                         class="image">
                                 </div>
+                                
                                 <div class="name">
                                     <a href="#" class="body-title-2">{{ $product->name }}</a>
                                     <div class="text-tiny mt-3">{{ $product->slug }}</div>
@@ -86,12 +89,14 @@
                                             <i class="icon-eye"></i>
                                         </div>
                                     </a>
-                                    <a href="#">
+                                    <a href="{{ route('admin.product.edit', ['id'=>$product->id]) }}">
                                         <div class="item edit">
                                             <i class="icon-edit-3"></i>
                                         </div>
                                     </a>
-                                    <form action="#" method="POST">
+                                    <form action="{{route('admin.product.delete',['id'=>$product->id])}}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
                                         <div class="item text-danger delete">
                                             <i class="icon-trash-2"></i>
                                         </div>
@@ -114,3 +119,26 @@
     </div>
 </div>
 @endsection
+
+
+@push('scripts')
+    <script>
+        $(function(){
+            $(`.delete`).on('click',function(e){
+                e.preventDefault();
+                var selectedForm = $(this).closest('form');
+                swal({
+                    title: `Are you sure?`,
+                    text: `You want to delete this record?`,
+                    type: `warning`,
+                    buttons: [`No!`, `Yes!`],
+                    confirmButtonColor: '#dc3545'
+                }).then(function (result) {
+                    if (result) {
+                        selectedForm.submit();  
+                    }
+                });                             
+            });
+        });
+    </script>    
+@endpush

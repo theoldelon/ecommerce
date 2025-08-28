@@ -331,6 +331,103 @@ public function delete_category($id)
             $constraint->aspectRatio();
         })->save($destinationPathThumbnail . '/' . $imageName);
     }
+
+    public function product_edit($id)
+    {
+        $product = Product::find($id);
+        $categories = Category::select('id', 'name')->orderBy('name')->get();
+        $brands = Brand::select('id','name')->orderBy('name')->get();
+        return view('admin.product-edit',compact('product','categories','brands'));
+    }
     
+    public function update_product(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'slug' => 'required|unique:products,slug,' . $request->id,
+            'category_id' => 'required',
+            'brand_id' => 'required',
+            'short_description' => 'required',
+            'description' => 'required',
+            'regular_price' => 'required',
+            'sale_price' => 'required',
+            'SKU' => 'required',
+            'stock_status' => 'required',
+            'featured' => 'required',
+            'quantity' => 'required',
+            'image' => 'mimes:png,jpg,jpeg|max:2048'
+        ]);
+    
+        $product = Product::findOrFail($request->id);
+    
+        $product->name = $request->name;
+        $product->slug = Str::slug($request->name);
+        $product->category_id = $request->category_id;
+        $product->brand_id = $request->brand_id;
+        $product->short_description = $request->short_description;
+        $product->description = $request->description;
+        $product->regular_price = $request->regular_price;
+        $product->sale_price = $request->sale_price;
+        $product->SKU = $request->SKU;
+        $product->stock_status = $request->stock_status;
+        $product->featured = $request->featured;
+        $product->quantity = $request->quantity;
+    
+        $current_timestamp = Carbon::now()->timestamp;
+    
+        // ✅ Handle main image upload
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $file_ext = $file->extension();
+            $file_name = $current_timestamp . '.' . $file_ext;
+    
+            // Move file to uploads/products
+            $file->move(public_path('uploads/products'), $file_name);
+    
+            // Save only filename
+            $product->image = $file_name;
+        }
+    
+        // ✅ Handle gallery images
+        if ($request->hasFile('images')) {
+            $gallery_arr = [];
+            $counter = 1;
+    
+            foreach ($request->file('images') as $file) {
+                $gext = $file->extension();
+                $gfilename = $current_timestamp . '-' . $counter . '.' . $gext;
+    
+                $file->move(public_path('uploads/products'), $gfilename);
+    
+                $gallery_arr[] = $gfilename;
+                $counter++;
+            }
+    
+            // Store filenames as comma separated
+            $product->images = implode(',', $gallery_arr);
+        }
+    
+        $product->save();
+    
+        return redirect()->route('admin.products')
+            ->with('status', 'Record has been updated successfully!');
+    }
+
+    public function product_delete($id)
+    {
+        $product = Product::find($id);
+        if (File::exists(public_path('uploads/products').'/'.$product->image)) 
+        {
+            File::delete(public_path('uploads/products').'/'.$product->image);
+        }
+        if (File::exists(public_path('uploads/products/thumbnails').'/'.$product->image))
+        {
+            File::delete(public_path('uploads/products/thumbnails').'/'.$product->image);
+        }
+
+
+        $product->delete();
+        return redirect()->route('admin.products')->with('status', 'Product has been deleted successfully!');
+    }
 
 }
